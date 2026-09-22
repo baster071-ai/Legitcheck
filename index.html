@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LegitCheck & Wycena AI</title>
+    <meta name="description" content="Aplikacja do weryfikacji autentyczności i wyceny odzieży, obuwia, czapek i akcesoriów z wykorzystaniem multimodalnego AI.">
+    <meta property="og:title" content="LegitCheck & Wycena AI">
+    <meta property="og:description" content="Aplikacja do weryfikacji autentyczności i wyceny odzieży, obuwia, czapek i akcesoriów z wykorzystaniem multimodalnego AI.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Modular LegitCheck Feature Engines -->
+    <script src="/js/ghost-camera.js"></script>
+    <script src="/js/onboarding.js"></script>
+    <script src="/js/guide-data.js"></script>
+    <script src="/js/certificate.js"></script>
+    <script src="/js/history-manager.js"></script>
+    <script src="/js/demo-loader.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .android-phone-frame {
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 10px #1e293b, 0 0 0 12px #0f172a;
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .drop-active {
+            border-color: #6366f1 !important;
+            background-color: rgba(99, 102, 241, 0.15) !important;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.25s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-start antialiased selection:bg-indigo-500 selection:text-white pb-20 sm:pb-12">
+
+    <!-- Toast Notification Banner -->
+    <div id="toastNotification" class="fixed top-4 z-50 transition-all duration-300 transform -translate-y-20 opacity-0 pointer-events-none px-4 py-3 rounded-2xl bg-slate-900/95 border border-slate-700 shadow-2xl flex items-center gap-3 text-xs max-w-sm backdrop-blur-md">
+        <i id="toastIcon" class="fa-solid fa-circle-exclamation text-amber-400 text-base flex-shrink-0"></i>
+        <span id="toastMessage" class="text-slate-200 font-medium"></span>
+    </div>
+
+    <!-- Header bar -->
+    <header class="w-full max-w-md sm:max-w-xl md:max-w-4xl bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
+        <!-- Android Status Bar simulation -->
+        <div class="px-4 py-1 bg-slate-950 flex items-center justify-between text-[11px] text-slate-400 font-mono select-none">
+            <span id="liveClock">12:00</span>
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-shield-cat text-indigo-400"></i>
+                <i class="fa-solid fa-signal"></i>
+                <i class="fa-solid fa-wifi"></i>
+                <i class="fa-solid fa-battery-full text-emerald-400"></i>
+            </div>
+        </div>
+
+        <div class="px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('check')">
+                <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-shield-halved text-white text-base"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-sm sm:text-base leading-tight bg-gradient-to-r from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent">LegitCheck & Wycena AI</h1>
+                    <p class="text-[10px] text-slate-400 flex items-center gap-1.5">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Silnik Gemini Multimodal
+                    </p>
+                </div>
+            </div>
+
+            <!-- Header Action Tabs -->
+            <div class="flex items-center space-x-1.5">
+                <button onclick="switchTab('check')" id="tabBtn-check" class="nav-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span class="hidden sm:inline">Weryfikuj</span>
+                </button>
+                <button onclick="switchTab('history')" id="tabBtn-history" class="nav-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center gap-1.5 relative">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span class="hidden sm:inline">Historia</span>
+                    <span id="historyCountBadge" class="hidden ml-1 px-1.5 py-0.2 bg-indigo-500 text-white text-[10px] rounded-full">0</span>
+                </button>
+                <button onclick="switchTab('guide')" id="tabBtn-guide" class="nav-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span class="hidden sm:inline">Poradnik</span>
+                </button>
+                <button onclick="window.OnboardingTour && window.OnboardingTour.openModal()" title="Instrukcja & Samouczek" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs transition border border-slate-700 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-question text-indigo-400"></i>
+                    <span class="hidden lg:inline text-[11px] font-semibold">Samouczek</span>
+                </button>
+                <button onclick="togglePhoneFrame()" title="Przełącz ramkę smartfona" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-xs transition border border-slate-700">
+                    <i class="fa-solid fa-mobile-screen"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="appContainer" class="w-full max-w-md sm:max-w-xl md:max-w-4xl flex-1 px-3 sm:px-6 py-6 space-y-6 transition-all duration-300">
+
+        <!-- ================= TAB: CHECK / VERIFICATION ================= -->
+        <div id="tabContent-check" class="space-y-6">
+
+            <!-- Quick Demo Bar -->
+            <div class="glass rounded-2xl p-3.5 border border-indigo-500/30 bg-indigo-950/20 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm flex-shrink-0 border border-indigo-500/30">
+                        <i class="fa-solid fa-flask-vial"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-extrabold text-slate-200 block">Szybki test bez wgrywania zdjęć</span>
+                        <span class="text-[10px] text-slate-400">Zobacz gotowy raport z certyfikatem i wyceną:</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <button onclick="window.DemoLoader && window.DemoLoader.loadDemo('jordan4')" class="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 hover:border-indigo-500 transition flex items-center justify-center gap-1.5 shadow">
+                        <i class="fa-solid fa-shoe-prints text-indigo-400"></i> Jordan 4 Black Cat
+                    </button>
+                    <button onclick="window.DemoLoader && window.DemoLoader.loadDemo('stone-island')" class="flex-1 sm:flex-none px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 hover:border-emerald-500 transition flex items-center justify-center gap-1.5 shadow">
+                        <i class="fa-solid fa-compass text-emerald-400"></i> Stone Island Hoodie
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Selector -->
+            <section class="glass rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-indigo-400"></i> Kategoria Produktu
+                    </h2>
+                    <span class="text-[11px] text-indigo-400 font-medium">Dopasowana checklista detali</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="categorySelector">
+                    <button onclick="setCategory('apparel')" id="cat-apparel" class="cat-btn p-3 rounded-xl border border-indigo-500 bg-indigo-600/20 text-indigo-300 font-semibold text-xs flex flex-col items-center justify-center gap-1.5 transition shadow-lg shadow-indigo-500/10">
+                        <i class="fa-solid fa-shirt text-base"></i> Odzież
+                    </button>
+                    <button onclick="setCategory('shoes')" id="cat-shoes" class="cat-btn p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200 font-semibold text-xs flex flex-col items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-shoe-prints text-base"></i> Obuwie / Sneakers
+                    </button>
+                    <button onclick="setCategory('hats')" id="cat-hats" class="cat-btn p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200 font-semibold text-xs flex flex-col items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-hat-cowboy text-base"></i> Czapki (Cap / Beanie)
+                    </button>
+                    <button onclick="setCategory('accessories')" id="cat-accessories" class="cat-btn p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200 font-semibold text-xs flex flex-col items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-backpack text-base"></i> Plecaki & Akcesoria
+                    </button>
+                </div>
+            </section>
+
+            <!-- Verification Photos Area -->
+            <section class="glass rounded-2xl p-4 sm:p-6 border border-slate-800 shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-camera text-indigo-400"></i> Zdjęcia Weryfikacyjne
+                        </h2>
+                        <p class="text-xs text-slate-400" id="categorySubtitle">Wgraj wymagane zdjęcia dla odzieży.</p>
+                    </div>
+                    <span id="photoCountBadge" class="px-2.5 py-1 rounded-full bg-slate-800 text-indigo-300 text-xs font-bold border border-slate-700">0 / 4</span>
+                </div>
+
+                <!-- Dynamic Checklist Alert Box -->
+                <div id="smartChecklistContainer" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-list-check text-indigo-400"></i> Wymagane ujęcia autentyczności:
+                        </span>
+                        <span class="text-[11px] text-slate-500">Im więcej zdjęć, tym wyższa pewność</span>
+                    </div>
+                    <ul id="checklistItems" class="space-y-1.5 text-slate-400">
+                        <!-- Dynamic checklist rendered by JS -->
+                    </ul>
+                </div>
+
+                <!-- Hidden inputs for file & camera -->
+                <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleFileSelect(event)">
+                <input type="file" id="fileInput" multiple accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+
+                <!-- Upload Area & Camera Trigger -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div id="dropZone" 
+                         onclick="document.getElementById('fileInput').click()" 
+                         class="border-2 border-dashed border-indigo-500/40 hover:border-indigo-500 bg-indigo-950/10 hover:bg-indigo-950/20 transition-all rounded-xl p-4 text-center cursor-pointer group flex flex-col items-center justify-center">
+                        <div class="w-10 h-10 rounded-full bg-indigo-500/10 group-hover:bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-2 transition">
+                            <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-200">Przeciągnij lub wybierz z galerii</p>
+                        <p class="text-[10px] text-slate-500 mt-0.5">JPG, PNG, WEBP (automatyczna optymalizacja)</p>
+                    </div>
+
+                    <button onclick="openCameraModal()" class="py-4 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-bold rounded-xl transition flex flex-col items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 group">
+                        <div class="w-10 h-10 rounded-full bg-white/10 group-hover:scale-110 flex items-center justify-center text-white transition">
+                            <i class="fa-solid fa-camera-retro text-lg"></i>
+                        </div>
+                        <span>Zrób zdjęcie aparatem</span>
+                    </button>
+                </div>
+
+                <!-- Image Gallery Preview -->
+                <div id="imageGallery" class="grid grid-cols-2 sm:grid-cols-4 gap-3 hidden pt-1"></div>
+            </section>
+
+            <!-- Metadata Form -->
+            <section class="glass rounded-2xl p-4 sm:p-6 border border-slate-800 shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-indigo-400"></i> Informacje o Przedmiocie
+                    </h2>
+                    <span class="text-[11px] text-slate-500">Opcjonalne, AI samo zidentyfikuje z metek</span>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Marka (opcjonalnie)</label>
+                        <input type="text" id="inputBrand" placeholder="np. Nike, Stone Island, Jordan, Supreme, Trapstar, Bape" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 text-slate-200">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Model / Nazwa</label>
+                            <input type="text" id="inputModel" placeholder="np. Air Jordan 1 Retro High" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Kod SKU / Art No.</label>
+                            <input type="text" id="inputSKU" placeholder="np. 555088-101 / 771564120" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 text-slate-200">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Rozmiar</label>
+                            <input type="text" id="inputSize" placeholder="np. 43 EU, L, One Size" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Deklarowany Stan</label>
+                            <select id="inputCondition" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 text-slate-200">
+                                <option value="10">10/10 (Nowy z metką / Deadstock)</option>
+                                <option value="9">9/10 (Stan idealny / założony raz)</option>
+                                <option value="8" selected>8/10 (Bardzo dobry / normalne ślady)</option>
+                                <option value="7">7/10 (Dobry / lekkie spranie)</option>
+                                <option value="6">6/10 (Widoczne wady / zmechacenia)</option>
+                                <option value="5">5/10 i poniżej (Uszkodzony / mocno znoszony)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="resetApp()" title="Resetuj formularz" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition flex items-center justify-center gap-2 border border-slate-700">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                        <button id="analyzeBtn" onclick="runAnalysis()" class="flex-1 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 text-xs sm:text-sm">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                            <span>Przeprowadź Analizę AI Legit Check</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Empty State Prompt -->
+            <section id="emptyState" class="glass rounded-2xl p-8 border border-slate-800 text-center flex flex-col items-center justify-center min-h-[220px]">
+                <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3">
+                    <i class="fa-solid fa-microscope text-2xl"></i>
+                </div>
+                <h3 class="text-sm font-bold text-slate-200">System Gotowy do Weryfikacji</h3>
+                <p class="text-xs text-slate-400 max-w-sm mt-1">Wybierz kategorię, wgraj zdjęcia kluczowych detali (szwy, metki, kody) i uruchom analizę rzeczoznawczą AI.</p>
+            </section>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="glass rounded-2xl p-10 border border-indigo-500/30 text-center flex flex-col items-center justify-center min-h-[280px] hidden">
+                <div class="relative w-16 h-16 mb-4">
+                    <div class="absolute inset-0 rounded-full border-4 border-indigo-500/20"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                    <div class="absolute inset-2 rounded-full border-2 border-emerald-400 border-b-transparent animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                </div>
+                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                    <span>Analiza Multimodalna w Toku...</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-2 max-w-sm" id="loadingStepText">Przetwarzanie zdjęć, mikroskopowa analiza szwów, czcionek oraz weryfikacja kodów...</p>
+                <div class="w-48 bg-slate-800 rounded-full h-1.5 mt-4 overflow-hidden">
+                    <div class="bg-indigo-500 h-1.5 rounded-full animate-pulse w-3/4"></div>
+                </div>
+            </div>
+
+            <!-- Results Dashboard -->
+            <div id="resultsDashboard" class="space-y-4 hidden">
+                <!-- Certificate Header Bar -->
+                <div class="glass rounded-xl p-3 border border-indigo-500/30 bg-slate-900/90 flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm border border-indigo-500/30">
+                            <i class="fa-solid fa-stamp"></i>
+                        </span>
+                        <div>
+                            <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Oficjalny Raport Weryfikacji</span>
+                            <span id="certIdBadge" class="text-xs font-mono font-bold text-indigo-300">LC-2026-92841</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="certTimestamp" class="text-[10px] text-slate-400">Dzisiaj</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                            <i class="fa-solid fa-check text-[9px]"></i> Zabezpieczony
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Score & Verdict Banner -->
+                <div id="scoreBanner" class="rounded-2xl p-5 border shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4 w-full sm:w-auto">
+                        <div id="scoreGauge" class="w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black border-4 shadow-inner">
+                            <span id="scorePercent">--%</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Werdykt Autentyczności</span>
+                                <span id="confidenceBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-indigo-300 font-mono">Pewność: 95%</span>
+                            </div>
+                            <div id="legitVerdict" class="text-xl font-black tracking-wide">LEGIT</div>
+                            <div id="legitSummary" class="text-xs text-slate-300 mt-1 max-w-lg leading-relaxed">Analiza zakończona pomyślnie.</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 text-right min-w-[170px] w-full sm:w-auto flex-shrink-0">
+                        <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Szacowana Wycena</div>
+                        <div id="estimatedPrice" class="text-2xl font-black text-emerald-400">0 PLN</div>
+                        <div id="priceRange" class="text-[10px] text-slate-400 font-medium">Zakres: 0 - 0 PLN</div>
+                    </div>
+                </div>
+
+                <!-- Actions: Copy Certificate, Share & Print -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <button onclick="copyCertificate()" class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-600/20">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>Kopiuj Certyfikat (Vinted/OLX)</span>
+                    </button>
+                    <button onclick="shareCertificate()" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-share-nodes text-indigo-400"></i>
+                        <span>Udostępnij Raport</span>
+                    </button>
+                    <button onclick="window.print()" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-print text-slate-400"></i>
+                        <span>Drukuj Certyfikat</span>
+                    </button>
+                </div>
+
+                <!-- Green / Red Flags -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="glass rounded-xl p-4 border border-emerald-500/20 bg-emerald-950/10">
+                        <h4 class="text-xs font-bold text-emerald-400 flex items-center gap-2 mb-2.5">
+                            <i class="fa-solid fa-circle-check"></i> Zielone Flagi (Cechy Autentyczne)
+                        </h4>
+                        <ul id="greenFlagsList" class="space-y-1.5 text-xs text-slate-300"></ul>
+                    </div>
+
+                    <div class="glass rounded-xl p-4 border border-rose-500/20 bg-rose-950/10">
+                        <h4 class="text-xs font-bold text-rose-400 flex items-center gap-2 mb-2.5">
+                            <i class="fa-solid fa-circle-xmark"></i> Czerwone Flagi (Wskazówki Podróbki)
+                        </h4>
+                        <ul id="redFlagsList" class="space-y-1.5 text-xs text-slate-300"></ul>
+                    </div>
+                </div>
+
+                <!-- Inspected Areas Breakdown -->
+                <div class="glass rounded-xl p-4 border border-slate-800 space-y-3">
+                    <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-indigo-400"></i> Szczegółowa Kontrola Obszarów (Strobel, Szwy, Metki)
+                    </h4>
+                    <div id="inspectedAreasContainer" class="space-y-2">
+                        <!-- Dynamic areas inserted by JS -->
+                    </div>
+                </div>
+
+                <!-- Buyer / Seller Advice Box -->
+                <div id="buyerAdviceBox" class="glass rounded-xl p-4 border border-amber-500/20 bg-amber-950/10">
+                    <h4 class="text-xs font-bold text-amber-300 flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-lightbulb text-amber-400"></i> Porada Ekspercka dla Kupującego / Sprzedającego
+                    </h4>
+                    <p id="buyerAdviceText" class="text-xs text-slate-300 leading-relaxed"></p>
+                </div>
+
+                <!-- Identified Product Details -->
+                <div class="glass rounded-xl p-4 border border-slate-800 space-y-2.5">
+                    <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice text-indigo-400"></i> Rozpoznane Dane & Parametry
+                    </h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                        <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-500 block text-[10px]">Marka:</span>
+                            <span id="detectedBrand" class="font-semibold text-slate-200">Brak</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-500 block text-[10px]">Model:</span>
+                            <span id="detectedModel" class="font-semibold text-slate-200">Brak</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-500 block text-[10px]">SKU / Kod:</span>
+                            <span id="detectedSKU" class="font-semibold text-slate-200">Brak</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-500 block text-[10px]">Materiał / Konstrukcja:</span>
+                            <span id="detectedFabric" class="font-semibold text-slate-200">Brak</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Links -->
+                <div class="glass rounded-2xl p-5 border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                            <i class="fa-solid fa-store text-indigo-400"></i> Porównaj Ceny na Rynku Wtórnym
+                        </h3>
+                        <span class="text-[10px] text-slate-500">Automatyczne wyszukiwanie po SKU/modelu</span>
+                    </div>
+                    <div id="marketLinksGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= TAB: HISTORY ================= -->
+        <div id="tabContent-history" class="space-y-4 hidden">
+            <div class="glass rounded-2xl p-5 border border-slate-800 flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Historia Weryfikacji
+                    </h2>
+                    <p class="text-xs text-slate-400">Zapisane raporty i wyceny z Twojego urządzenia</p>
+                </div>
+                <button onclick="clearHistory()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 border border-slate-700 text-xs font-medium transition">
+                    Wyczyść historię
+                </button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-3 gap-3">
+                <div class="glass rounded-xl p-3 border border-slate-800 text-center">
+                    <span class="text-[10px] text-slate-500 uppercase font-bold">Wszystkie</span>
+                    <p id="statTotal" class="text-xl font-extrabold text-slate-200">0</p>
+                </div>
+                <div class="glass rounded-xl p-3 border border-emerald-500/20 bg-emerald-950/10 text-center">
+                    <span class="text-[10px] text-emerald-400 uppercase font-bold">Legit</span>
+                    <p id="statLegit" class="text-xl font-extrabold text-emerald-400">0</p>
+                </div>
+                <div class="glass rounded-xl p-3 border border-rose-500/20 bg-rose-950/10 text-center">
+                    <span class="text-[10px] text-rose-400 uppercase font-bold">Fake</span>
+                    <p id="statFake" class="text-xl font-extrabold text-rose-400">0</p>
+                </div>
+            </div>
+
+            <!-- Search & Filter Controls -->
+            <div class="glass rounded-2xl p-3.5 border border-slate-800 flex flex-col sm:flex-row items-center gap-2.5">
+                <div class="relative w-full sm:flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+                    <input type="text" id="historySearchInput" oninput="window.HistoryManager && window.HistoryManager.renderHistory(window.HistoryManager.activeFilter, this.value)" placeholder="Filtruj historię (marka, model, SKU)..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-slate-200 placeholder:text-slate-500">
+                </div>
+                <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                    <button onclick="window.HistoryManager.renderHistory('all', document.getElementById('historySearchInput').value)" class="px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-indigo-600 text-white transition flex-shrink-0">Wszystkie</button>
+                    <button onclick="window.HistoryManager.renderHistory('legit', document.getElementById('historySearchInput').value)" class="px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-slate-800 text-emerald-400 hover:bg-slate-700 transition flex-shrink-0">Legit</button>
+                    <button onclick="window.HistoryManager.renderHistory('fake', document.getElementById('historySearchInput').value)" class="px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-slate-800 text-rose-400 hover:bg-slate-700 transition flex-shrink-0">Fake</button>
+                    <button onclick="window.HistoryManager.exportToJson()" title="Eksportuj historię (JSON)" class="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs border border-slate-700 transition ml-1 flex-shrink-0">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                    <input type="file" id="historyImportFile" accept=".json" class="hidden" onchange="window.HistoryManager.importFromJson(this.files[0])">
+                    <button onclick="document.getElementById('historyImportFile').click()" title="Importuj z pliku JSON" class="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs border border-slate-700 transition flex-shrink-0">
+                        <i class="fa-solid fa-upload"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="historyListContainer" class="space-y-3">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+
+        <!-- ================= TAB: GUIDE / BAZA WIEDZY ================= -->
+        <div id="tabContent-guide" class="space-y-4 hidden">
+            <div class="glass rounded-2xl p-5 border border-slate-800">
+                <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-indigo-400"></i> Poradnik & Baza Wiedzy Legit Check
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">Sprawdzone metody weryfikacji najczęściej podrabianych marek streetwear, sneakersów i luxury.</p>
+            </div>
+
+            <!-- Guide Search & Category Filters -->
+            <div class="glass rounded-2xl p-3.5 border border-slate-800 flex flex-col sm:flex-row items-center gap-2.5">
+                <div class="relative w-full sm:flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+                    <input type="text" id="guideSearchInput" oninput="window.GuideData && window.GuideData.handleSearch(this.value)" placeholder="Szukaj marki, modelu lub cechy (np. Strobel, Certilogo, BOGO)..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs focus:outline-none focus:border-indigo-500 text-slate-200 placeholder:text-slate-500">
+                </div>
+                <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                    <button onclick="window.GuideData.filterCategory('all')" data-cat="all" class="guide-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition flex-shrink-0">Wszystkie</button>
+                    <button onclick="window.GuideData.filterCategory('sneakers')" data-cat="sneakers" class="guide-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-400 hover:text-slate-200 transition flex-shrink-0">Sneakersy</button>
+                    <button onclick="window.GuideData.filterCategory('streetwear')" data-cat="streetwear" class="guide-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-400 hover:text-slate-200 transition flex-shrink-0">Streetwear</button>
+                    <button onclick="window.GuideData.filterCategory('luxury')" data-cat="luxury" class="guide-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-400 hover:text-slate-200 transition flex-shrink-0">Luxury</button>
+                </div>
+            </div>
+
+            <!-- Dynamic Guide List -->
+            <div id="guidesListContainer" class="space-y-3">
+                <!-- Rendered by window.GuideData.renderGuides() -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (Mobile / Android view) -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800 backdrop-blur-lg flex items-center justify-around py-2 max-w-md sm:max-w-xl md:max-w-4xl mx-auto">
+        <button onclick="switchTab('check')" id="bottomBtn-check" class="flex flex-col items-center gap-1 text-indigo-400 text-xs font-semibold py-1 px-4 transition">
+            <i class="fa-solid fa-magnifying-glass text-base"></i>
+            <span class="text-[10px]">Weryfikuj</span>
+        </button>
+        <button onclick="switchTab('history')" id="bottomBtn-history" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 text-xs font-semibold py-1 px-4 transition">
+            <i class="fa-solid fa-clock-rotate-left text-base"></i>
+            <span class="text-[10px]">Historia</span>
+        </button>
+        <button onclick="switchTab('guide')" id="bottomBtn-guide" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 text-xs font-semibold py-1 px-4 transition">
+            <i class="fa-solid fa-book-open text-base"></i>
+            <span class="text-[10px]">Poradnik</span>
+        </button>
+    </nav>
+
+    <!-- Camera / Ghost Viewfinder Modal -->
+    <div id="cameraModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 hidden">
+        <div class="glass max-w-lg w-full rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
+            <!-- Header with Quick Action Controls -->
+            <div class="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <h3 class="font-bold text-xs text-slate-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-camera-retro text-indigo-400"></i> Asystent Ghost Camera
+                    </h3>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button id="torchToggleBtn" onclick="window.GhostCamera && window.GhostCamera.toggleTorch()" title="Włącz / wyłącz lampę" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs transition border border-slate-700">
+                        <i class="fa-solid fa-bolt"></i>
+                    </button>
+                    <button id="gridToggleBtn" onclick="window.GhostCamera && window.GhostCamera.toggleGrid()" title="Przełącz siatkę 3x3" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs transition border border-slate-700">
+                        <i class="fa-solid fa-border-all"></i>
+                    </button>
+                    <button onclick="window.GhostCamera && window.GhostCamera.toggleFacing()" title="Przełącz aparat przód/tył" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs transition border border-slate-700">
+                        <i class="fa-solid fa-camera-rotate"></i>
+                    </button>
+                    <button onclick="closeCameraModal()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs transition border border-slate-700">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Video & Overlays Viewport -->
+            <div class="relative bg-black aspect-[4/3] flex items-center justify-center overflow-hidden">
+                <video id="cameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+                <canvas id="cameraCanvas" class="hidden"></canvas>
+
+                <!-- Grid 3x3 Overlay -->
+                <div id="cameraGrid" class="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 hidden z-10">
+                    <div class="border-r border-b border-white/20"></div>
+                    <div class="border-r border-b border-white/20"></div>
+                    <div class="border-b border-white/20"></div>
+                    <div class="border-r border-b border-white/20"></div>
+                    <div class="border-r border-b border-white/20"></div>
+                    <div class="border-b border-white/20"></div>
+                    <div class="border-r border-b border-white/20"></div>
+                    <div class="border-r border-b border-white/20"></div>
+                    <div></div>
+                </div>
+                
+                <!-- Target Reticle Overlay -->
+                <div id="cameraReticle" class="absolute inset-6 border border-white/20 rounded-2xl pointer-events-none flex flex-col justify-between p-3 z-10">
+                    <div class="flex justify-between">
+                        <span class="w-4 h-4 border-t-2 border-l-2 border-indigo-400"></span>
+                        <span class="w-4 h-4 border-t-2 border-r-2 border-indigo-400"></span>
+                    </div>
+                    <div class="text-center text-[10px] text-white/80 bg-black/60 px-3 py-1 rounded-full mx-auto backdrop-blur-md border border-white/10">
+                        Dopasuj detal do wybranego obrysu Ghost
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="w-4 h-4 border-b-2 border-l-2 border-indigo-400"></span>
+                        <span class="w-4 h-4 border-b-2 border-r-2 border-indigo-400"></span>
+                    </div>
+                </div>
+
+                <!-- Ghost Outline Container -->
+                <div id="ghostOverlayContainer" class="absolute inset-0 pointer-events-none flex items-center justify-center p-4 z-10 transition-opacity duration-200">
+                    <!-- Dynamic SVG injected by GhostCamera.renderTemplate -->
+                </div>
+
+                <!-- Fallback UI if getUserMedia is denied or in sandboxed iframe -->
+                <div id="cameraError" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-xs space-y-3 hidden bg-slate-950/95 z-20">
+                    <div class="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-camera"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-slate-200 text-sm">Aparat urządzenia</p>
+                        <p class="text-slate-400 text-xs mt-1 max-w-xs">Wybierz natywny aparat Twojego telefonu lub wgraj zrobione wcześniej zdjęcia:</p>
+                    </div>
+                    <div class="flex flex-col gap-2 w-full max-w-xs pt-1">
+                        <button onclick="triggerNativeCamera()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30">
+                            <i class="fa-solid fa-camera"></i> Otwórz aparat systemowy
+                        </button>
+                        <button onclick="triggerGalleryUpload()" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition flex items-center justify-center gap-2 border border-slate-700">
+                            <i class="fa-solid fa-images"></i> Wybierz z galerii
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ghost Outline Selector & Opacity Toolbar -->
+            <div class="p-2.5 bg-slate-900 border-t border-slate-800 space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i> Szablon Ghost:
+                    </span>
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] text-slate-500">Krycie:</span>
+                        <button onclick="window.GhostCamera && window.GhostCamera.setOpacity(0)" data-opacity="0" class="ghost-opacity-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-white">Wył</button>
+                        <button onclick="window.GhostCamera && window.GhostCamera.setOpacity(0.3)" data-opacity="0.3" class="ghost-opacity-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-white">30%</button>
+                        <button onclick="window.GhostCamera && window.GhostCamera.setOpacity(0.6)" data-opacity="0.6" class="ghost-opacity-btn px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white">60%</button>
+                        <button onclick="window.GhostCamera && window.GhostCamera.setOpacity(1)" data-opacity="1" class="ghost-opacity-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-white">100%</button>
+                    </div>
+                </div>
+
+                <!-- Template Selector Chips -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                    <button onclick="window.GhostCamera.renderTemplate('sneaker-side')" data-tpl="sneaker-side" class="ghost-tpl-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-600 text-white transition flex-shrink-0">
+                        👟 But (Profil)
+                    </button>
+                    <button onclick="window.GhostCamera.renderTemplate('sneaker-sole')" data-tpl="sneaker-sole" class="ghost-tpl-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex-shrink-0">
+                        👣 Podeszwa
+                    </button>
+                    <button onclick="window.GhostCamera.renderTemplate('wash-tag')" data-tpl="wash-tag" class="ghost-tpl-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex-shrink-0">
+                        🏷️ Metka / Wash Tag
+                    </button>
+                    <button onclick="window.GhostCamera.renderTemplate('strobel')" data-tpl="strobel" class="ghost-tpl-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex-shrink-0">
+                        🧵 Szew Strobel
+                    </button>
+                    <button onclick="window.GhostCamera.renderTemplate('hoodie-chest')" data-tpl="hoodie-chest" class="ghost-tpl-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex-shrink-0">
+                        👕 Odzież / BOGO
+                    </button>
+                    <button onclick="window.GhostCamera.renderTemplate('cap-front')" data-tpl="cap-front" class="ghost-tpl-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex-shrink-0">
+                        🧢 Czapka
+                    </button>
+                    <button onclick="window.GhostCamera.renderTemplate('barcode')" data-tpl="barcode" class="ghost-tpl-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex-shrink-0">
+                        🔳 Kod / QR
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
+                <button onclick="closeCameraModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+                    Zamknij
+                </button>
+                <button onclick="takeSnapshot()" id="snapBtn" class="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-camera text-base"></i> Zrób zdjęcie detalu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Onboarding Modal -->
+    <div id="onboardingModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass max-w-md w-full rounded-3xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col p-6 space-y-6 animate-fadeIn">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-xl bg-indigo-600 flex items-center justify-center text-xs text-white">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <span class="text-xs font-extrabold text-slate-200">Przewodnik LegitCheck AI</span>
+                </div>
+                <button onclick="window.OnboardingTour && window.OnboardingTour.closeModal()" class="text-slate-400 hover:text-white p-1 text-sm transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Dynamic Slide Content -->
+            <div id="onboardingSlideContent" class="py-2 min-h-[220px] flex items-center justify-center">
+                <!-- Injected by OnboardingTour.renderSlide -->
+            </div>
+
+            <!-- Carousel Dots -->
+            <div class="flex items-center justify-center gap-2" id="onboardingDots">
+                <!-- Dots injected by JS -->
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="flex items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+                <button id="onboardingPrevBtn" onclick="window.OnboardingTour && window.OnboardingTour.prev()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition">
+                    Wstecz
+                </button>
+                <button onclick="window.OnboardingTour && window.OnboardingTour.closeModal()" class="text-xs font-medium text-slate-400 hover:text-slate-200 py-2 px-3">
+                    Pomiń
+                </button>
+                <button id="onboardingNextBtn" onclick="window.OnboardingTour && window.OnboardingTour.next()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                    <span>Dalej</span> <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCategory = 'apparel';
+        let uploadedImages = [];
+        let mediaStream = null;
+        let isPhoneFramed = false;
+        let lastAnalysisResult = null;
+
+        const categoryConfig = {
+            apparel: {
+                name: "Odzież",
+                subtitle: "Wgraj zdjęcia dla t-shirtów, bluz, kurtek",
+                requirements: [
+                    { id: 'neckTag', label: 'Metka karkowa / Główny branding' },
+                    { id: 'washTag', label: 'Metka wewnętrzna ze składem (Wash Tag)' },
+                    { id: 'stitching', label: 'Zbliżenie na szwy i hafty / logo' },
+                    { id: 'frontView', label: 'Pełny przód przedmiotu' }
+                ]
+            },
+            shoes: {
+                name: "Obuwie",
+                subtitle: "Wgraj zdjęcia sneakersów i butów",
+                requirements: [
+                    { id: 'boxLabel', label: 'Etykieta na pudełku (Size Tag / SKU)' },
+                    { id: 'shoeTag', label: 'Metka wewnątrz języka / rozmiarówka' },
+                    { id: 'sideProfile', label: 'Profil boczny buta (Swoosh/Detale)' },
+                    { id: 'outsole', label: 'Podeszwa / Spód buta' }
+                ]
+            },
+            hats: {
+                name: "Czapki",
+                subtitle: "Wgraj zdjęcia czapek z daszkiem lub zimowych",
+                requirements: [
+                    { id: 'frontLogo', label: 'Haft / Logo z przodu czapki' },
+                    { id: 'innerBand', label: 'Potnik / Metka wewnętrzna' },
+                    { id: 'closure', label: 'Zapięcie lub regulacja z tyłu' }
+                ]
+            },
+            accessories: {
+                name: "Plecaki / Akcesoria",
+                subtitle: "Wgraj zdjęcia plecaków, toreb lub nerek",
+                requirements: [
+                    { id: 'interiorTag', label: 'Wewnętrzna metka / Serial Number' },
+                    { id: 'hardware', label: 'Zamki (np. YKK/Riri) i klamry' },
+                    { id: 'logoPatch', label: 'Naszywka z logo / branding' }
+                ]
+            }
+        };
+
+        // Notification Toast
+        function showNotification(msg, isError = false) {
+            const toast = document.getElementById('toastNotification');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            if (isError) {
+                toastIcon.className = "fa-solid fa-circle-exclamation text-rose-400 text-base flex-shrink-0";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-base flex-shrink-0";
+            }
+
+            toast.classList.remove('-translate-y-20', 'opacity-0', 'pointer-events-none');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.add('-translate-y-20', 'opacity-0', 'pointer-events-none');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3800);
+        }
+
+        // Tab Switching
+        function switchTab(tabId) {
+            ['check', 'history', 'guide'].forEach(t => {
+                const content = document.getElementById(`tabContent-${t}`);
+                const topBtn = document.getElementById(`tabBtn-${t}`);
+                const bottomBtn = document.getElementById(`bottomBtn-${t}`);
+
+                if (t === tabId) {
+                    content.classList.remove('hidden');
+                    topBtn.className = "nav-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition flex items-center gap-1.5";
+                    if (bottomBtn) bottomBtn.className = "flex flex-col items-center gap-1 text-indigo-400 text-xs font-semibold py-1 px-4 transition";
+                } else {
+                    content.classList.add('hidden');
+                    topBtn.className = "nav-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center gap-1.5";
+                    if (bottomBtn) bottomBtn.className = "flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 text-xs font-semibold py-1 px-4 transition";
+                }
+            });
+
+            if (tabId === 'history') {
+                renderHistory();
+            }
+        }
+
+        // Category Switcher
+        function setCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn p-3 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200 font-semibold text-xs flex flex-col items-center justify-center gap-1.5 transition";
+            });
+            const activeBtn = document.getElementById(`cat-${cat}`);
+            if (activeBtn) {
+                activeBtn.className = "cat-btn p-3 rounded-xl border border-indigo-500 bg-indigo-600/20 text-indigo-300 font-semibold text-xs flex flex-col items-center justify-center gap-1.5 transition shadow-lg shadow-indigo-500/10";
+            }
+            document.getElementById('categorySubtitle').innerText = categoryConfig[cat].subtitle;
+            updateChecklist();
+            renderGallery();
+        }
+
+        function updateChecklist() {
+            const checklistEl = document.getElementById('checklistItems');
+            const requirements = categoryConfig[currentCategory].requirements;
+            
+            checklistEl.innerHTML = requirements.map(req => {
+                const fulfilled = uploadedImages.some(img => img.category === req.id);
+                return `
+                    <li class="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg ${fulfilled ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-slate-900/60 text-slate-400 border border-transparent'}">
+                        <span class="flex items-center gap-2 font-medium">
+                            <i class="fa-solid ${fulfilled ? 'fa-circle-check text-emerald-400' : 'fa-circle-xmark text-slate-500'}"></i>
+                            ${req.label}
+                        </span>
+                        <span class="text-[10px] font-mono uppercase ${fulfilled ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${fulfilled ? 'Dodane' : 'Do zrobienia'}</span>
+                    </li>
+                `;
+            }).join('');
+
+            const totalReq = requirements.length;
+            const completedCount = requirements.filter(req => uploadedImages.some(img => img.category === req.id)).length;
+            document.getElementById('photoCountBadge').innerText = `${completedCount} / ${totalReq}`;
+        }
+
+        // Image resizing on client (maintains high quality while preventing slow uploads)
+        function compressImage(file, maxDimension = 1600, quality = 0.85) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let { width, height } = img;
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
+                            } else {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                        resolve(compressedBase64);
+                    };
+                    img.onerror = reject;
+                };
+                reader.onerror = reject;
+            });
+        }
+
+        async function processFiles(files) {
+            if (!files || !files.length) return;
+
+            const requirements = categoryConfig[currentCategory].requirements;
+            let addedCount = 0;
+
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) continue;
+                try {
+                    const base64 = await compressImage(file);
+                    const unfulfilled = requirements.find(req => !uploadedImages.some(img => img.category === req.id));
+                    const assignedCat = unfulfilled ? unfulfilled.id : requirements[0].id;
+
+                    uploadedImages.push({
+                        id: Date.now() + Math.random(),
+                        base64,
+                        category: assignedCat
+                    });
+                    addedCount++;
+                } catch (e) {
+                    console.error("Błąd kompresji pliku:", e);
+                }
+            }
+
+            if (addedCount > 0) {
+                renderGallery();
+                updateChecklist();
+                showNotification(`Dodano ${addedCount} ${addedCount === 1 ? 'zdjęcie' : 'zdjęć'}.`);
+            }
+        }
+
+        function handleFileSelect(event) {
+            processFiles(Array.from(event.target.files));
+        }
+
+        // Setup Drag & Drop
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('drop-active');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drop-active');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            processFiles(Array.from(files));
+        });
+
+        function removeImage(id) {
+            uploadedImages = uploadedImages.filter(img => img.id !== id);
+            renderGallery();
+            updateChecklist();
+        }
+
+        function updateImageCategory(id, newCat) {
+            const img = uploadedImages.find(i => i.id === id);
+            if (img) img.category = newCat;
+            updateChecklist();
+        }
+
+        function renderGallery() {
+            const gallery = document.getElementById('imageGallery');
+            if (uploadedImages.length === 0) {
+                gallery.classList.add('hidden');
+                return;
+            }
+            gallery.classList.remove('hidden');
+
+            const requirements = categoryConfig[currentCategory].requirements;
+
+            gallery.innerHTML = uploadedImages.map(img => `
+                <div class="relative group rounded-xl overflow-hidden bg-slate-900 border border-slate-800 aspect-square flex flex-col shadow-md">
+                    <div class="flex-1 overflow-hidden relative">
+                        <img src="${img.base64}" class="w-full h-full object-cover" alt="Zdjęcie detalu">
+                        <button onclick="removeImage(${img.id})" title="Usuń zdjęcie" class="absolute top-1 right-1 bg-rose-600/90 hover:bg-rose-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs transition z-10 shadow-md">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <select onchange="updateImageCategory(${img.id}, this.value)" class="bg-slate-950 text-[10px] py-1.5 px-1.5 text-slate-300 font-medium w-full outline-none border-t border-slate-800 cursor-pointer">
+                        ${requirements.map(req => `<option value="${req.id}" ${img.category === req.id ? 'selected' : ''}>${req.label.substring(0, 24)}</option>`).join('')}
+                    </select>
+                </div>
+            `).join('');
+        }
+
+        function togglePhoneFrame() {
+            isPhoneFramed = !isPhoneFramed;
+            const container = document.getElementById('appContainer');
+            if (isPhoneFramed) {
+                container.classList.add('android-phone-frame', 'max-w-md', 'rounded-3xl', 'my-4', 'bg-slate-950');
+                showNotification("Włączono podgląd smartfona Android.");
+            } else {
+                container.classList.remove('android-phone-frame', 'max-w-md', 'rounded-3xl', 'my-4');
+                showNotification("Włączono pełny widok.");
+            }
+        }
+
+        function resetApp() {
+            uploadedImages = [];
+            lastAnalysisResult = null;
+            renderGallery();
+            updateChecklist();
+            document.getElementById('inputBrand').value = '';
+            document.getElementById('inputModel').value = '';
+            document.getElementById('inputSKU').value = '';
+            document.getElementById('inputSize').value = '';
+            document.getElementById('inputCondition').value = '8';
+            
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('resultsDashboard').classList.add('hidden');
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('fileInput').value = '';
+            showNotification("Zresetowano formularz i zdjęcia.");
+        }
+
+        function triggerNativeCamera() {
+            closeCameraModal();
+            const nativeCam = document.getElementById('nativeCameraInput');
+            if (nativeCam) nativeCam.click();
+        }
+
+        function triggerGalleryUpload() {
+            closeCameraModal();
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.click();
+        }
+
+        async function openCameraModal(facingMode = 'environment') {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showNotification("Uruchamianie aparatu urządzenia...", false);
+                triggerNativeCamera();
+                return;
+            }
+
+            const modal = document.getElementById('cameraModal');
+            const video = document.getElementById('cameraVideo');
+            const errorDiv = document.getElementById('cameraError');
+            const reticle = document.getElementById('cameraReticle');
+            const snapBtn = document.getElementById('snapBtn');
+
+            modal.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            video.classList.remove('hidden');
+            reticle.classList.remove('hidden');
+            snapBtn.disabled = false;
+            snapBtn.classList.remove('opacity-50', 'pointer-events-none');
+
+            // Auto-select ghost outline based on current missing checklist item
+            if (window.GhostCamera) {
+                const reqs = categoryConfig[currentCategory].requirements;
+                const unfulfilled = reqs.find(req => !uploadedImages.some(img => img.category === req.id));
+                if (unfulfilled) {
+                    window.GhostCamera.autoSelectForStep(unfulfilled.id, currentCategory);
+                } else if (currentCategory === 'shoes') {
+                    window.GhostCamera.renderTemplate('sneaker-side');
+                } else if (currentCategory === 'hats') {
+                    window.GhostCamera.renderTemplate('cap-front');
+                } else {
+                    window.GhostCamera.renderTemplate('hoodie-chest');
+                }
+            }
+
+            try {
+                if (mediaStream) {
+                    try { mediaStream.getTracks().forEach(track => track.stop()); } catch (e) {}
+                }
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                });
+                video.srcObject = mediaStream;
+                if (window.GhostCamera) window.GhostCamera.setActiveStream(mediaStream);
+            } catch (err) {
+                console.warn("Kamera w oknie przeglądarki niedostępna:", err);
+                video.classList.add('hidden');
+                reticle.classList.add('hidden');
+                errorDiv.classList.remove('hidden');
+                snapBtn.disabled = true;
+                snapBtn.classList.add('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        function closeCameraModal() {
+            const modal = document.getElementById('cameraModal');
+            modal.classList.add('hidden');
+            if (window.GhostCamera && typeof window.GhostCamera.stopStream === 'function') {
+                window.GhostCamera.stopStream();
+            }
+            if (mediaStream) {
+                try {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                } catch (e) {}
+                mediaStream = null;
+            }
+        }
+
+        function takeSnapshot() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            
+            if (!mediaStream || video.paused || video.ended) return;
+
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const base64Data = canvas.toDataURL('image/jpeg', 0.85);
+
+            const requirements = categoryConfig[currentCategory].requirements;
+            const unfulfilled = requirements.find(req => !uploadedImages.some(img => img.category === req.id));
+            const assignedCat = unfulfilled ? unfulfilled.id : requirements[0].id;
+
+            uploadedImages.push({
+                id: Date.now() + Math.random(),
+                base64: base64Data,
+                category: assignedCat
+            });
+
+            renderGallery();
+            updateChecklist();
+            closeCameraModal();
+            showNotification("Zdjęcie zrobione pomyślnie z asystentem Ghost.");
+        }
+
+        async function runAnalysis() {
+            if (uploadedImages.length === 0) {
+                showNotification("Proszę wgrać przynajmniej jedno zdjęcie przedmiotu do analizy.", true);
+                return;
+            }
+
+            const brand = document.getElementById('inputBrand').value.trim();
+            const model = document.getElementById('inputModel').value.trim();
+            const sku = document.getElementById('inputSKU').value.trim();
+            const size = document.getElementById('inputSize').value.trim();
+            const condition = document.getElementById('inputCondition').value;
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('resultsDashboard').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+
+            const loadingTexts = [
+                "Przetwarzanie zdjęć i ekstrakcja cech wizualnych...",
+                "Analiza mikroskopowa szwów i struktury materiału...",
+                "Weryfikacja typografii metek i kodów SKU...",
+                "Porównywanie z bazą rynkową i szacowanie wartości..."
+            ];
+            let stepIndex = 0;
+            const stepInterval = setInterval(() => {
+                stepIndex = (stepIndex + 1) % loadingTexts.length;
+                const el = document.getElementById('loadingStepText');
+                if (el) el.innerText = loadingTexts[stepIndex];
+            }, 1800);
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        categoryName: categoryConfig[currentCategory].name,
+                        brand,
+                        model,
+                        sku,
+                        size,
+                        condition,
+                        images: uploadedImages
+                    })
+                });
+
+                clearInterval(stepInterval);
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `Błąd serwera: ${response.status}`);
+                }
+
+                const result = await response.json();
+                lastAnalysisResult = result;
+                displayResults(result);
+                saveToHistory(result);
+
+            } catch (err) {
+                clearInterval(stepInterval);
+                console.error("AI Analysis Error:", err);
+                showNotification(err.message || "Wystąpił błąd podczas analizy zdjęć przez AI. Spróbuj ponownie.", true);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('hidden');
+            }
+        }
+
+        window.renderFullDashboard = function(data, images, certId) {
+            lastAnalysisResult = data;
+            const certBadge = document.getElementById('certIdBadge');
+            if (certBadge) {
+                certBadge.innerText = certId || (window.CertificateEngine ? window.CertificateEngine.generateCertId() : 'LC-' + Date.now());
+            }
+            const certTimestamp = document.getElementById('certTimestamp');
+            if (certTimestamp) certTimestamp.innerText = new Date().toLocaleDateString('pl-PL');
+            displayResults(data);
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.classList.add('hidden');
+        };
+
+        function displayResults(data) {
+            document.getElementById('loadingState').classList.add('hidden');
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.classList.add('hidden');
+            document.getElementById('resultsDashboard').classList.remove('hidden');
+
+            const scorePercent = document.getElementById('scorePercent');
+            const scoreGauge = document.getElementById('scoreGauge');
+            const legitVerdict = document.getElementById('legitVerdict');
+            const scoreBanner = document.getElementById('scoreBanner');
+            const confidenceBadge = document.getElementById('confidenceBadge');
+
+            scorePercent.innerText = `${data.legitScore}%`;
+            legitVerdict.innerText = data.verdict;
+            document.getElementById('legitSummary').innerText = data.summary;
+            confidenceBadge.innerText = `Pewność: ${data.confidence || 'Wysoka'}`;
+
+            if (data.legitScore >= 80) {
+                scoreBanner.className = "rounded-2xl p-5 border shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-emerald-950/20 border-emerald-500/30";
+                scoreGauge.className = "w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black border-4 border-emerald-500 text-emerald-400 bg-emerald-500/10";
+                legitVerdict.className = "text-xl font-black text-emerald-400";
+            } else if (data.legitScore >= 50) {
+                scoreBanner.className = "rounded-2xl p-5 border shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-amber-950/20 border-amber-500/30";
+                scoreGauge.className = "w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black border-4 border-amber-500 text-amber-400 bg-amber-500/10";
+                legitVerdict.className = "text-xl font-black text-amber-400";
+            } else {
+                scoreBanner.className = "rounded-2xl p-5 border shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-rose-950/20 border-rose-500/30";
+                scoreGauge.className = "w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black border-4 border-rose-500 text-rose-400 bg-rose-500/10";
+                legitVerdict.className = "text-xl font-black text-rose-400";
+            }
+
+            document.getElementById('estimatedPrice').innerText = `${data.estimatedPricePLN} PLN`;
+            document.getElementById('priceRange').innerText = `Zakres: ${data.minPricePLN} - ${data.maxPricePLN} PLN`;
+
+            document.getElementById('detectedBrand').innerText = data.brand || 'Brak danych';
+            document.getElementById('detectedModel').innerText = data.model || 'Brak danych';
+            document.getElementById('detectedSKU').innerText = data.sku || 'Brak danych';
+            document.getElementById('detectedFabric').innerText = data.fabric || 'Brak danych';
+
+            document.getElementById('greenFlagsList').innerHTML = (data.greenFlags && data.greenFlags.length ? data.greenFlags : ["Brak pozytywnych wskaźników."]).map(f => `
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>
+                    <span>${f}</span>
+                </li>
+            `).join('');
+
+            document.getElementById('redFlagsList').innerHTML = (data.redFlags && data.redFlags.length ? data.redFlags : ["Brak zastrzeżeń."]).map(f => `
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-xmark text-rose-400 mt-0.5"></i>
+                    <span>${f}</span>
+                </li>
+            `).join('');
+
+            // Inspected Areas breakdown
+            const areasContainer = document.getElementById('inspectedAreasContainer');
+            if (data.inspectedAreas && data.inspectedAreas.length) {
+                areasContainer.innerHTML = data.inspectedAreas.map(area => {
+                    const statusClass = area.status === 'pass' 
+                        ? 'border-emerald-500/20 bg-emerald-950/20 text-emerald-300' 
+                        : (area.status === 'warning' ? 'border-amber-500/20 bg-amber-950/20 text-amber-300' : 'border-rose-500/20 bg-rose-950/20 text-rose-300');
+                    const iconClass = area.status === 'pass' ? 'fa-circle-check text-emerald-400' : (area.status === 'warning' ? 'fa-triangle-exclamation text-amber-400' : 'fa-circle-xmark text-rose-400');
+                    const badgeText = area.status === 'pass' ? 'OK / Zgodne' : (area.status === 'warning' ? 'Wątpliwe' : 'Niezgodne');
+
+                    return `
+                        <div class="p-2.5 rounded-xl border ${statusClass} flex items-start justify-between gap-3 text-xs">
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid ${iconClass} mt-0.5"></i>
+                                <div>
+                                    <div class="font-bold text-slate-200">${area.name}</div>
+                                    <div class="text-[11px] text-slate-300 mt-0.5">${area.notes}</div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-slate-900/60 border border-slate-700 flex-shrink-0">${badgeText}</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                areasContainer.innerHTML = `<div class="text-xs text-slate-500">Brak szczegółowego rozbicia obszarów.</div>`;
+            }
+
+            // Buyer advice
+            const buyerAdviceBox = document.getElementById('buyerAdviceBox');
+            if (data.buyerAdvice) {
+                buyerAdviceBox.classList.remove('hidden');
+                document.getElementById('buyerAdviceText').innerText = data.buyerAdvice;
+            } else {
+                buyerAdviceBox.classList.add('hidden');
+            }
+
+            generateMarketplaceLinks(data.brand, data.model, data.sku);
+        }
+
+        function generateMarketplaceLinks(brand, model, sku) {
+            const query = encodeURIComponent(`${brand || ''} ${model || ''} ${sku || ''}`.trim());
+            if (!query) return;
+
+            const platforms = [
+                { name: 'Vinted', icon: 'fa-bag-shopping', color: 'hover:border-teal-500 hover:text-teal-400', url: `https://www.vinted.pl/vetements?search_text=${query}` },
+                { name: 'StockX', icon: 'fa-chart-line', color: 'hover:border-emerald-500 hover:text-emerald-400', url: `https://stockx.com/search?s=${query}` },
+                { name: 'Grailed', icon: 'fa-shirt', color: 'hover:border-amber-500 hover:text-amber-400', url: `https://www.grailed.com/shop?query=${query}` },
+                { name: 'Allegro', icon: 'fa-cart-shopping', color: 'hover:border-orange-500 hover:text-orange-400', url: `https://allegro.pl/listing?string=${query}` },
+                { name: 'OLX', icon: 'fa-store', color: 'hover:border-cyan-500 hover:text-cyan-400', url: `https://www.olx.pl/oferty/q-${query}/` },
+                { name: 'eBay', icon: 'fa-globe', color: 'hover:border-blue-500 hover:text-blue-400', url: `https://www.ebay.com/sch/i.html?_nkw=${query}` }
+            ];
+
+            const grid = document.getElementById('marketLinksGrid');
+            grid.innerHTML = platforms.map(p => `
+                <a href="${p.url}" target="_blank" rel="noopener noreferrer" 
+                   class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center justify-between text-xs font-semibold text-slate-300 transition ${p.color} group">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid ${p.icon} text-slate-500 group-hover:text-inherit"></i>
+                        ${p.name}
+                    </span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-40 group-hover:opacity-100"></i>
+                </a>
+            `).join('');
+        }
+
+        // Certificate Generator & Sharing (Powered by js/certificate.js)
+        function copyCertificate() {
+            if (!lastAnalysisResult) {
+                showNotification("Brak wyników do skopiowania.", true);
+                return;
+            }
+            if (window.CertificateGenerator) {
+                window.CertificateGenerator.copyCertificate(lastAnalysisResult);
+            }
+        }
+
+        function shareCertificate() {
+            if (!lastAnalysisResult) {
+                showNotification("Brak wyników do udostępnienia.", true);
+                return;
+            }
+            if (window.CertificateGenerator) {
+                window.CertificateGenerator.shareCertificate(lastAnalysisResult);
+            }
+        }
+
+        // History Management (Powered by js/history-manager.js)
+        function saveToHistory(result) {
+            try {
+                if (window.HistoryManager && typeof window.HistoryManager.saveToHistory === 'function') {
+                    window.HistoryManager.saveToHistory(result);
+                }
+            } catch (e) {
+                console.warn("Błąd zapisu historii:", e);
+            }
+        }
+
+        function updateHistoryBadge() {
+            if (window.HistoryManager) {
+                window.HistoryManager.updateBadge();
+            }
+        }
+
+        function renderHistory() {
+            if (window.HistoryManager) {
+                window.HistoryManager.renderHistory();
+            }
+        }
+
+        function restoreHistoryItem(id) {
+            if (window.HistoryManager) {
+                window.HistoryManager.loadItem(id);
+            }
+        }
+
+        function deleteHistoryItem(id) {
+            if (window.HistoryManager) {
+                window.HistoryManager.deleteItem(id);
+            }
+        }
+
+        function clearHistory() {
+            if (window.HistoryManager) {
+                window.HistoryManager.clearHistory();
+            }
+        }
+
+        // Accordion helper for guide (Powered by js/guide-data.js)
+        function toggleAccordion(id) {
+            if (window.GuideData) {
+                window.GuideData.toggleAccordion(id);
+            } else {
+                const content = document.getElementById(id);
+                const icon = document.getElementById(`icon-${id}`);
+                if (content) {
+                    content.classList.toggle('hidden');
+                    if (icon) icon.classList.toggle('rotate-180');
+                }
+            }
+        }
+
+        // Live clock update
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const clockEl = document.getElementById('liveClock');
+            if (clockEl) clockEl.innerText = `${hours}:${minutes}`;
+        }
+
+        // Initialize default checklist and modular features on load
+        window.onload = function() {
+            updateChecklist();
+            updateClock();
+            if (window.HistoryManager) {
+                window.HistoryManager.updateBadge();
+                window.HistoryManager.renderHistory();
+            }
+            if (window.GuideData) {
+                window.GuideData.renderGuides();
+            }
+            if (window.OnboardingTour) {
+                window.OnboardingTour.checkFirstVisit();
+            }
+            setInterval(updateClock, 30000);
+        };
+    </script>
+</body>
+</html>

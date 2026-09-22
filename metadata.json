@@ -1,0 +1,7 @@
+{
+  "name": "LegitCheck & Wycena AI",
+  "description": "Aplikacja do weryfikacji autentyczności i wyceny odzieży, obuwia, czapek i akcesoriów z wykorzystaniem multimodalnego AI.",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
